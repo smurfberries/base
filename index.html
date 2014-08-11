@@ -33,12 +33,14 @@
 			var apiKey       = 'AIzaSyBi6IQrdJ50NmXJdlB6-jzloJom2k8hp3Y';
 			var scopes       = 'email https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/plus.me';
 			var clientId     = '743442613317-sv5m009as2nv74oq7adfn9jhhn4126nv.apps.googleusercontent.com';
+
+			var uninstallURL = 'https://script.google.com/macros/d/McKYI-99KOk_IvLzdkr2i5F6G-Nz2EBaZ/manage/uninstall';
 			var scriptId     = 'AKfycbz8cBPywps19V5lO2z4JaUfrBEdPEtHpOzSjqVcmVDVoDXpPao';
+
 			var scriptUrl    = 'https://script.google.com/macros/s/'+scriptId+'/exec';
 			var scriptUrlRe  = new RegExp("script.google.com\/.+\/'+scriptId+'");
 			var scriptApp    = scriptUrl + '?purpose=init';
 			var scriptInit   = scriptUrl + '?callback=?';
-			var uninstallURL = 'https://script.google.com/macros/d/McKYI-99KOk_IvLzdkr2i5F6G-Nz2EBaZ/manage/uninstall';
 
 			var sheetBase   = 'https://docs.google.com/spreadsheets/d/%KEY%/edit?rm=demo%GID%'; // chrome=false&output=embed1&usp=sharing&rm=[minimal|full|embedded|demo]&
 			var sheetCount  = [0, 0]; // [#total, #loaded]
@@ -211,6 +213,11 @@
 				jQuery('#authUninstall').attr('href', uninstallURL);
 				jQuery('#authorize-button').attr('href', scriptApp);
 				jQuery('#scopeDisplay').text(scopes);
+				if (hashedPage == 'help') {
+					showContent(hashedPage);
+					jQuery('#progress').show();
+					jQuery('#faqstartup').show();
+				}
 				heightWiggle();
 			});
 			jQuery(window).resize(function () {
@@ -319,7 +326,7 @@
 						<li><h4>Google Sheets integration</h4>This site uses Google's Authentication and Authorisation frameworks to load an iframe containing your Google Drive information. This site runs purely in Javascript and does not obtain, nor attempt to obtain any information you have not excplicitly authorised.</li>
 						<li><h4>Google Authorisation</h4>The Smurfberries Manager uses the following scopes <code id="scopeDisplay"></code>.</li>
 						<li><h4>Smurfberries Manager</h4>The Smurfberries Manager runs under HTTPS for the purposes of communication security. This site is configured, (through Google App OAuth settings), to only function under HTTPS at the top level domain (https://smurfberri.es).<br />The specific calls and data used by the Google Apps Script Smurfberries Manager (as authorised by you) are as follows: <code>sheet = DriveApp.getFileById(sheetID); {title: sheet.getName()};</code>, <code>ScriptApp.getOAuthToken();</code>. <code>gapi.client.drive.files.get</code>. <code>resp = gapi.client.oauth2.userinfo.get(); setCookie(resp.id);</code>, this cookie is used to support multi-signin users and only to detect which particular account has authorised this application. As all interactions here are performed using Javascript, you may investigate the functionality yourself or via a third party.</li>
-						<li><h4>Terms and Usage</h4>Code used by this website is published in a purely open format. It may be copied, reverse engineered, republished under a different name, for commercial and/or non-profit use.<br />All rights belong to their respective holders and you must obtain their consent before use. The bespoke code used by this site is covered under <a href="/LICENSE.txt" target="_blank">The Unlicense</a> and <a href="https://github.com/smurfberries/base">you may obtain the code here</a>.<br />No guarantee is given, or available, regarding the security of any data transmitted through or on behalf of this website. You use this site at your own risk.</li>
+						<li><h4>Terms and Usage</h4>Code used by this website is published in a purely open format. It may be copied, reverse engineered, republished under a different name, for commercial and/or non-profit use.<br />All rights belong to their respective holders and you must obtain their consent before use. The bespoke code used by this site is covered under <a href="/LICENSE.txt" target="_blank">The Unlicense</a><br />No guarantee is given, or available, regarding the security of any data transmitted through or on behalf of this website. You use this site at your own risk.</li>
 					</ol>
 				</div>
 			</div>
