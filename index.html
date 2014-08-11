@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%; padding: 0; margin:0;">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<style>
+			body { font-size: 13px; }
+			a img.compact { height: 26px; padding-right: 10px; }
+			a img.full { height: auto; padding-right: 10px; }
+			nav.navbar { margin-bottom: 0; }
+			.navbar-sb, .navbar-nav li a, ul.dropdown-menu { background-color: #0b5394; font-family: verdana; font-weight: bold; color: white; }
+			a.navbar-brand { padding: 13px 15px 10px 4px; }
+			a.navbar-brand, .navbar-nav li a { height: auto; color: whitesmoke; }
+			a.navbar-brand:hover { color: #D2EAFF; }
+			.nav li a { text-decoration: underline; }
+			.navbar-nav li a:hover, .navbar-nav li a:active, .navbar-nav li a.active, li.open a { color: #2a6496; background-color: #eee; }
+		</style>
+		<link rel="stylesheet" href="/css/min.css" />
+		<script src="/js/min.js"></script>
+		<script>
+		  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+		  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+		  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+		  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+		  ga('create', 'UA-53699364-1', 'auto');
+		  ga('send', 'pageview');
+
+		</script>
+		<script type="text/javascript">
+
+			var apiKey       = 'AIzaSyBi6IQrdJ50NmXJdlB6-jzloJom2k8hp3Y';
+			var scopes       = 'email https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/plus.me';
+			var clientId     = '743442613317-sv5m009as2nv74oq7adfn9jhhn4126nv.apps.googleusercontent.com';
+			var scriptId     = 'AKfycbz8cBPywps19V5lO2z4JaUfrBEdPEtHpOzSjqVcmVDVoDXpPao';
+			var scriptUrl    = 'https://script.google.com/macros/s/'+scriptId+'/exec';
+			var scriptUrlRe  = new RegExp("script.google.com\/.+\/'+scriptId+'");
+			var scriptApp    = scriptUrl + '?purpose=init';
+			var scriptInit   = scriptUrl + '?callback=?';
+			var uninstallURL = 'https://script.google.com/macros/d/McKYI-99KOk_IvLzdkr2i5F6G-Nz2EBaZ/manage/uninstall';
+
+			var sheetBase   = 'https://docs.google.com/spreadsheets/d/%KEY%/edit?rm=demo%GID%'; // chrome=false&output=embed1&usp=sharing&rm=[minimal|full|embedded|demo]&
+			var sheetCount  = [0, 0]; // [#total, #loaded]
+			var sheets      = [];
+			var hashedPage  = window.location.hash.replace(/^#(SBLink|)/, '');
+			var usingImmediate = false;
+
+			function setProgress(label, val) {
+				jQuery('#progressBar').attr('aria-valuenow', val);
+				jQuery('#progressBar').css('width', val + '%');
+				jQuery('#progressStatus').text(label);
+			}
+
+			function handleClientLoad() {
+				setProgress('Initialising', '0');
+				gapi.client.setApiKey(apiKey);
+				window.setTimeout(checkAuth(true),1);
+			}
+
+			function checkAuth(immediate) {
+				usingImmediate = immediate;
+				setProgress('Checking Auth', '25');
+				gapi.auth.authorize({client_id: clientId, scope: scopes, immediate: immediate, authuser: -1, user_id: jQuery.cookie('sbSesUID')}, handleAuthResult);
+			}
+
+			function handleAuthResult(authResult) {
+				jQuery('#authorise-startup').hide();
+				if (authResult && !authResult.error) {
+
+					if (usingImmediate == false) {
+						gapi.client.load('oauth2', 'v2', function() {
+							gapi.client.oauth2.userinfo.get().execute(function(resp) {
+					 			jQuery.cookie('sbSesUID', resp.id, { path: '/', expires: 7, secure: true });
+							});
+						});
+					}
+
+					jQuery('#authorise-widget').hide();
+					jQuery('#authorise-success').show();
+					makeApiCall();
+				} else {
+					if (scriptUrlRe.test(document.referrer)) {
+						jQuery('#supplemental-authorise').show();
+						checkAuth(false);
+						return;
+					}
+					setProgress('Authorisation required', '100');
+					jQuery('#authorise-widget').show();
+					//jQuery('#progress').hide();
+				}
+			}
+
+			// Load the API and make an API call.  Display the results on the screen.
+			function makeApiCall() {
+				setProgress('Fetching data', '50');
+				jQuery.getJSON(scriptInit+"?",
+					{method:"import_data"},
+					function (data) {
+					for(var k in data) { sheetCount[0]++; }
+					loadSheetData(data);
+					}
+				);
+			}
+
+			function loadSheetData(sheets)
+			{
+				if (sheetCount[0] == 0) {
+					// .. no sheets .. okidokie
+					jQuery('#progress').hide();
+					jQuery('#authorise-nosheets').show();
+					jQuery('#logo').removeClass('full').addClass('compact');
+					showContent('help');
+					return;
+				}
+				setProgress('Loading sheets - '+(sheetCount[0]-sheetCount[1])+' to go', '75');
+	 			gapi.client.load('drive', 'v2', function() {
+				    for (var i in sheets) {
+						var request = gapi.client.drive.files.get({
+							'fileId': i
+						});
+						request.execute(function(resp) {
+							var id   = resp.id;
+							var name = resp.title;
+							var gid;
+							if (resp.lastViewedByMeDate != "") {
+								gid="#gid="+sheets[i].gid;
+							}
+							addSheet(id, name, gid);
+						});
+				    }
+				});
+			}
+
+			function addSheet(id, name, gid)
+			{
+				jQuery('#sheets').prepend('<li><a href="#SBLink'+id+'" id="SBLink'+id+'">'+name+'</a></li>');
+				jQuery('#SBLink'+id).click(function(){ loadSheet(id, name, gid); });
+				sheetCount[1] += 1;
+				sheets.push(id);
+				if (sheetCount[0] == sheetCount[1] || hashedPage == id) {
+					jQuery('#progress').hide();
+					jQuery('#logo').removeClass('full').addClass('compact');
+					jQuery('#faqstartup').hide();
+					if (sheetCount[0] == 1 || hashedPage == id) {
+						loadSheet(id, name, gid);
+					} else {
+						if (hashedPage) {
+							showContent(hashedPage);
+						} else {
+							showContent('faqwelcome');
+						}
+					}
+				} else {
+					setProgress('Parsing sheets', '100');
+				}
+			}
+
+			function showContent(id)
+			{
+				var kids = jQuery('#content').children();
+				for (var i=0; i<kids.length; i++) {
+					var elem = jQuery(kids[i]);
+					if (kids[i].id == id) {
+						elem.show();
+					} else {
+						elem.hide();
+					}
+				}
+				jQuery('#content').show();
+				jQuery('#GAPPFrame').hide();
+				jQuery('body').css('overflow', 'scroll');
+			}
+
+			function showChoices()
+			{
+				jQuery('#progress').hide();
+				jQuery('#GAPPFrame').hide();
+				jQuery('#content').show();
+				jQuery('#logo').removeClass('compact').addClass('full');
+				heightWiggle();
+			}
+
+			function loadSheet(id, name, gid)
+			{
+				var src = sheetBase.replace('%GID%', gid).replace('%KEY%', id);
+				if (jQuery('#GAPPFrame').attr('src') != src) {
+					jQuery('#GAPPFrame').attr('src', src);
+				}
+				jQuery('#logo').removeClass('full').addClass('compact');
+				jQuery('body').css('overflow', 'hidden');
+				jQuery('#GAPPFrame').show();
+				jQuery('#content').hide();
+				for (var i=0; i<sheets.length; i++) {
+					jQuery('#SBLink'+sheets[i]).removeClass('active');
+				}
+				jQuery('#SBLink'+id).addClass('active');
+				heightWiggle();
+			}
+
+			function heightWiggle()
+			{
+				jQuery('#GAPPFrame').height(jQuery('#container').height()-(jQuery('#nav').outerHeight()));
+			}
+
+			jQuery(document).ready(function () {
+				jQuery('#helplink').click(function () { showContent('help'); });
+				jQuery('#authhelp').click(function () { showContent('help'); });
+				jQuery('#uninstall').attr('href', uninstallURL);
+				jQuery('#helpUninstall').attr('href', uninstallURL);
+				jQuery('#authUninstall').attr('href', uninstallURL);
+				jQuery('#authorize-button').attr('href', scriptApp);
+				jQuery('#scopeDisplay').text(scopes);
+				heightWiggle();
+			});
+			jQuery(window).resize(function () {
+				heightWiggle();
+			});
+
+		</script>
+   <script src="/js/gc.js?onload=handleClientLoad"></script>
+ </head>
+ <body style="height: 100%; padding: 0; margin:0; overflow: hidden;">
+	<div id="container" class="panel-body" style="height: 100%; padding: 0;">
+		<nav id="nav" class="navbar navbar-sb navbar-static-top" role="navigation">
+			<div class="container-fluid">
+    			<!-- Brand and toggle get grouped for better mobile display -->
+    			<div class="navbar-header">
+	    			<a class="navbar-brand" href="#"><img id="logo" src="/logo.png" class="full"/><span id="headline">Smurfberries</span></a>
+				</div>
+				<ul id="sheets" class="nav navbar-nav">
+				</ul>
+				<ul id="extranav" class="nav navbar-nav navbar-right">
+					<li class="dropdown">
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown">More <span class="caret"></span></a>
+						<ul class="dropdown-menu" role="menu">
+			            	<li><a id="uninstall" href="">Uninstall</a></li>
+			            	<li><a id="helplink" href="#help">Help!</a></li>
+			            </ul>
+		            </li>
+				</ul>
+			</div>
+		</nav>
+		<div id="content">
+			<div class="progress" id="progress">
+				<div id="progressBar" class="progress-bar progress-bar-striped active"  role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 10%">
+					<span id="progressStatus">Loading</span>
+				</div>
+			</div>
+			<div id="faqstartup">
+				<div class="alert alert-info" role="alert" id="authorise-startup">
+					Please wait whilst we check your permissions.
+				</div>
+				<div class="alert alert-warning" role="alert" id="authorise-widget" style="display: none">
+					<a href="" id="authorize-button" class="alert-link">Click here to authorise the Smurfberries Manager and get access.</a><br />
+					<span id="supplemental-authorise" style="display: none;"><br />If you're seeing this more than you should - <a href="#help" id="authhelp" class="alert-link">check out the help sheet</a>.</span>
+				</div>
+				<div class="alert alert-success" role="alert" id="authorise-success" style="display: none">
+					Authorisation is good, loading your sheet data.
+				</div>
+				<div class="alert alert-info" role="alert" id="authorise-nosheets" style="display: none">
+					We could not locate any Smurfberries on our list that you can access. Check the help below and if you think your sheet should be listed here, contact us - 
+					  <div class="form-group">
+					    <div class="input-group">
+					      <input class="form-control" type="email" placeholder="admin" readonly>
+					      <div class="input-group-addon">@</div>
+					      <input class="form-control" type="email" placeholder="smurberri.es" readonly>
+					    </div>
+					  </div>
+				</div>
+			</div>
+			<div id="faqwelcome" class="jumbotron" style="display: none;">
+				<h1>Welcome to Smurfberries!</h1>
+				<p>Select one of the sheets above to begin</p>
+			</div>
+			<div id="help" style="display: none;">
+				<h2>Need help?</h2>
+				<h3>How does this all work?</h3>
+				<div class="well well-sm">
+					There are a few moving pieces here.<br />
+					Step 1 involves getting access to your local Smurfberries sheet. Without that you won't get anything useful out of this site.<br />
+					From there, there is a Google apps script that this site uses to find out which of the Dmurfberries sheets you have access to.<br />
+					The list of sheets is then pulled here and displayed in a handy little iframe.<br />
+					All your details remain yours and neither this site, nor the Smurfberries Manager will log, record, modify or mess with any of your information.<br />
+				</div>
+				<h3>I just want to use Google sheets and I don't want Smurfberries manager to have access to any of my information.</h3>
+				<div class="well well-sm">
+					<h4>No sweat. Two steps for you:</h4>
+					<ol>
+						<li><a id="helpuninstall" href="#help" target="_blank">Remove Smurfberries Manager access</a>.</li>
+						<li><a href="//drive.google.com/drive/#search?q=smurfberries">Find Smurfberries in your google drive</a>.</li>
+					</ol>
+				</div>
+				<h3>Issues with authorisation</h3>
+				<div class="well well-sm">
+					This usually comes down to a few things;
+					<ol>
+						<li><h4>Popup blocking!</h4>
+						Popup blocking may or may not be your enemy. Double check for a blocked popup.</li>
+						<li><h4>Using Internet Explorer?</h4>
+						Third party cookie blocking is your enemy here. Press <kbd>alt</kbd>, click on <code>Tools</code> then <code>Internet options</code>, select the <code>Privacy</code> tab and click on <button>Sites</button>. Now add <code>google.com</code> to the textbox and click <button>Allow</button>.<br />
+						If you're not comfortable doing that - then you'll have to use Chrome, Firefox or just <a href="//drive.google.com/drive/#search?q=smurfberries">Find Smurfberries in your google drive</a>
+						</li>
+						<li><h4>Multiple Google accounts?</h4>
+						We're still working on this - it's a bit tricky.
+						</li>
+						<li><h4>Revoked access to Smurfberries Manager?</h4>
+						Revoking 'Smurfberries Manager' access from the '<a href="https://security.google.com/settings/security/permissions" target="_blank">Account Permissions</a>' section of your account only disables half the program, so you'll be stuck in an endless "Click here to authorise" > "Done!" loop.<br />
+						Use the <a id="authUninstall" href="#help">apps uninstall function</a> (also found under "More <span class="caret"></span>" in the top nav bar) and start again.
+						</li>
+					</ol>
+				</div>
+				<h3>Privacy, data usage and other fun things</h3>
+				<div class="well well-sm">
+					<ol>
+						<li><h4>Who owns your data</h4>Your data is yours and yours alone. Data and information provided on this site is contained within your browser and any authorised Google services.</li>
+						<li><h4>Site tracking</h4>This site uses Google Universal Analytics and Webmaster tools in their basic function. It does not track, nor retain your personal information.</li>
+						<li><h4>Third party services</h4>This site uses Google Universal Analytics and Webmaster tools. It also uses the Google APIs and Google Apps Script services. This site does not retain nor record your personal information outside of your browser or the Google Authentication framework</li>
+						<li><h4>Google Sheets integration</h4>This site uses Google's Authentication and Authorisation frameworks to load an iframe containing your Google Drive information. This site runs purely in Javascript and does not obtain, nor attempt to obtain any information you have not excplicitly authorised.</li>
+						<li><h4>Google Authorisation</h4>The Smurfberries Manager uses the following scopes <code id="scopeDisplay"></code>.</li>
+						<li><h4>Smurfberries Manager</h4>The Smurfberries Manager runs under HTTPS for the purposes of communication security. This site is configured, (through Google App OAuth settings), to only function under HTTPS at the top level domain (https://smurfberri.es).<br />The specific calls and data used by the Google Apps Script Smurfberries Manager (as authorised by you) are as follows: <code>sheet = DriveApp.getFileById(sheetID); {title: sheet.getName()};</code>, <code>ScriptApp.getOAuthToken();</code>. <code>gapi.client.drive.files.get</code>. <code>resp = gapi.client.oauth2.userinfo.get(); setCookie(resp.id);</code>, this session cookie is used to handle multi-signin users to detect which particular account has authorised this application. As all interactions are performed using Javascript, you may investigate the functionality yourself or via a third party.</li>
+						<li><h4>Terms and Usage</h4>Code used by this website is published in a purely open format. It may be copied, reverse engineered, republished under a different name, for commercial and/or non-profit use.<br />All rights belong to their respective holders and you must obtain their consent before use.<br />No guarantee is given, or available, regarding the security of any data transmitted through or on behalf of this website. You use this site at your own risk.</li>
+					</ol>
+				</div>
+			</div>
+		</div>
+		<iframe id="GAPPFrame" src="" style="display: none; width: 100%; height: auto; border: 0; padding: 0; margin:0; padding:0"></iframe>
+	</div>
+ </body>
+</html>
