@@ -5,4 +5,4 @@ if [ -z "$SBPATH" ]; then
 	exit 1;
 fi
 
-git archive master | tar -x -C $SBPATH
+git archive master | tar -x -C $SBPATH -f -
