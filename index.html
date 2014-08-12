@@ -47,6 +47,7 @@
 			var sheets      = [];
 			var hashedPage  = window.location.hash.replace(/^#(SBLink|)/, '');
 			var usingImmediate = false;
+            var seenCount   = Math.max(jQuery.cookie('seen'),0);
 
 			function setProgress(label, val) {
 				jQuery('#progressBar').attr('aria-valuenow', val);
@@ -219,6 +220,7 @@
 					jQuery('#faqstartup').show();
 				}
 				heightWiggle();
+                jQuery.cookie('seen', seenCount++, { path: '/', secure: true });
 			});
 			jQuery(window).resize(function () {
 				heightWiggle();
@@ -260,7 +262,7 @@
 				</div>
 				<div class="alert alert-warning" role="alert" id="authorise-widget" style="display: none">
 					<a href="" id="authorize-button" class="alert-link">Click here to authorise the Smurfberries Manager and get access.</a><br />
-					<span id="supplemental-authorise" style="display: none;"><br />If you're seeing this more than you should - <a href="#help" id="authhelp" class="alert-link">check out the help sheet</a>.</span>
+					<span id="supplemental-authorise" style="display: none;"><br />Common problems: multiple accounts, popup blockers, third party cookie blocking. <a href="#help" id="authhelp" class="alert-link">check out the help sheet for more info</a>.</span>
 				</div>
 				<div class="alert alert-success" role="alert" id="authorise-success" style="display: none">
 					Authorisation is good, loading your sheet data.
