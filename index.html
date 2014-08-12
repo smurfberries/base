@@ -104,8 +104,8 @@
 				jQuery.getJSON(scriptInit+"?",
 					{method:"import_data"},
 					function (data) {
-					for(var k in data) { sheetCount[0]++; }
-					loadSheetData(data);
+                        for(var k in data) { sheetCount[0]++; }
+                        loadSheetData(data);
 					}
 				);
 			}
@@ -224,6 +224,10 @@
 					jQuery('#faqstartup').show();
 				}
 				heightWiggle();
+                if (seenCount > 0) {
+                    jQuery('#supplemental-authorise').show();
+                }
+
                 jQuery.cookie('seen', ++seenCount, { path: '/', secure: true });
 			});
 			jQuery(window).resize(function () {
