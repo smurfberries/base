@@ -49,7 +49,7 @@
 			var usingImmediate = false;
             var seenCount   = jQuery.cookie('seen');
 
-            if (seenCount == NaN) {
+            if (isNaN(seenCount)) {
                 seenCount = 0;
             }
 
