@@ -224,7 +224,7 @@
 					jQuery('#faqstartup').show();
 				}
 				heightWiggle();
-                jQuery.cookie('seen', seenCount++, { path: '/', secure: true });
+                jQuery.cookie('seen', ++seenCount, { path: '/', secure: true });
 			});
 			jQuery(window).resize(function () {
 				heightWiggle();
