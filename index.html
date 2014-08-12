@@ -48,6 +48,16 @@
 			var hashedPage  = window.location.hash.replace(/^#(SBLink|)/, '');
 			var usingImmediate = false;
             var seenCount   = jQuery.cookie('seen');
+            var authUser    = jQuery.cookie('authuser');
+
+            if (authUser == undefined) {
+                authUser = -1;
+            } else {
+                var authUserString = 'authuser='+authUser;
+                scriptApp += '&'+authUserString; 
+                sheetBase += '&'+authUserString;
+                uninstallURL += '?'+authUserString;
+            }
 
             if (isNaN(seenCount)) {
                 seenCount = 0;
@@ -68,7 +78,7 @@
 			function checkAuth(immediate) {
 				usingImmediate = immediate;
 				setProgress('Checking Auth', '25');
-				gapi.auth.authorize({client_id: clientId, scope: scopes, immediate: immediate, authuser: -1, user_id: jQuery.cookie('sbSesUID')}, handleAuthResult);
+				gapi.auth.authorize({client_id: clientId, scope: scopes, immediate: immediate, authuser: authUser, user_id: jQuery.cookie('sbSesUID')}, handleAuthResult);
 			}
 
 			function handleAuthResult(authResult) {
@@ -102,7 +112,7 @@
 			function makeApiCall() {
 				setProgress('Fetching data', '50');
 				jQuery.getJSON(scriptInit+"?",
-					{method:"import_data"},
+					{method:"import_data", authuser:authUser},
 					function (data) {
                         for(var k in data) { sheetCount[0]++; }
                         loadSheetData(data);
@@ -205,6 +215,25 @@
 				heightWiggle();
 			}
 
+            function showAuthuserEntry()
+            {
+                if (authUser == -1) {
+                    var message = 'Enter your authuser id or email address used for smurfberries. A value of <code>-1</code> is the default.';
+                } else {
+                    var message = 'Your current authuser setting is `'+authUser+'`. Change it here or submit a blank box to clear it. A value of <code>-1</code> is the default.';
+                }
+                bootbox.prompt(message, function(result) {
+                    if (result !== null) {
+                        if (result == '') {
+                            result = '-1';
+                        }
+                        authUser = result;
+                        jQuery.cookie('authuser', authUser, { path: '/', expires: 7, secure: true });
+                    }
+                });
+                return false;
+            }
+
 			function heightWiggle()
 			{
 				jQuery('#GAPPFrame').height(jQuery('#container').height()-(jQuery('#nav').outerHeight()));
@@ -213,6 +242,7 @@
 			jQuery(document).ready(function () {
 				jQuery('#helplink').click(function () { showContent('help'); });
 				jQuery('#authhelp').click(function () { showContent('help'); });
+                jQuery('#authuserEntry').click(function () { showAuthuserEntry(); });
 				jQuery('#uninstall').attr('href', uninstallURL);
 				jQuery('#helpUninstall').attr('href', uninstallURL);
 				jQuery('#authUninstall').attr('href', uninstallURL);
@@ -296,7 +326,7 @@
 				<div class="well well-sm">
 					There are a few moving pieces here.<br />
 					Step 1 involves getting access to your local Smurfberries sheet. Without that you won't get anything useful out of this site.<br />
-					From there, there is a Google apps script that this site uses to find out which of the Dmurfberries sheets you have access to.<br />
+					From there, there is a Google apps script that this site uses to find out which of the Smurfberries sheets you have access to.<br />
 					The list of sheets is then pulled here and displayed in a handy little iframe.<br />
 					All your details remain yours and neither this site, nor the Smurfberries Manager will log, record, modify or mess with any of your information.<br />
 				</div>
@@ -319,7 +349,9 @@
 						If you're not comfortable doing that - then you'll have to use Chrome, Firefox or just <a href="//drive.google.com/drive/#search?q=smurfberries">Find Smurfberries in your google drive</a>
 						</li>
 						<li><h4>Multiple Google accounts?</h4>
-						We're still working on this - it's a bit tricky.
+						This one is a bit tricky.<br />
+                        The problem stems around working out which is the "current" account as that is what the apps script will use when we fire off the "init" call. We don't have any visibility into what the "correct" <code>authuser</code> is, so at this stage all you can do is set an <code>authuser</code> cookie for this site that contains either the <code>?authuser</code> number or the email address you use for Smurfberries.<br />
+                        The best we can do to make this simpler is: <a href="#" id="authuserEntry">click here to enter the value and we'll keep it in a cookie</a>.
 						</li>
 						<li><h4>Revoked access to Smurfberries Manager?</h4>
 						Revoking 'Smurfberries Manager' access from the '<a href="https://security.google.com/settings/security/permissions" target="_blank">Account Permissions</a>' section of your account only disables half the program, so you'll be stuck in an endless "Click here to authorise" > "Done!" loop.<br />
