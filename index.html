@@ -47,7 +47,11 @@
 			var sheets      = [];
 			var hashedPage  = window.location.hash.replace(/^#(SBLink|)/, '');
 			var usingImmediate = false;
-            var seenCount   = Math.max(jQuery.cookie('seen'),0);
+            var seenCount   = jQuery.cookie('seen');
+
+            if (seenCount == NaN) {
+                seenCount = 0;
+            }
 
 			function setProgress(label, val) {
 				jQuery('#progressBar').attr('aria-valuenow', val);
